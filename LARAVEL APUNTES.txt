@@ -1,0 +1,294 @@
+================
+LARAVEL
+INSTALACIONES
+================
+
+- composer: manejador de paquetes de php.
+- XAMPP
+
+==========================
+INSTALAR NUEVO PROYECTO
+==========================
+
+composer create-project laravel/laravel example-app
+
+===============================================
+INSTALAR NUEVO PROYECTO DESDE SU INSTALADOR
+===============================================
+
+composer global require laravel/installer
+laravel -v
+laravel new nombre_proyecto
+
+EXTENSIONES EN VS CODE PARA LARAVEL:
+- Laravel Blade formatter
+- Laravel Blade Snippets
+- Laravel goto view
+- Laravel Snippets
+- Php intelephense
+- GitHub copilot (paga)
+
+====================
+RUTAS EN LARAVEL
+=================== 
+
+routes/web.php
+
+Route::get('/', function () {
+   //return view('welcome');
+   return 'Welcome!!';
+});
+
+Route::get('cursos', function () {
+    return 'Hola desde cursos';
+});
+
+Route::get('cursos/create', function () {
+    return "pagina create";
+});
+
+/* Route::get('cursos/{curso}', function ($curso) {
+    return "Bienvenido al curso: $curso";
+});
+ */
+Route::get('cursos/{curso}/{categoria?}', function ($curso, $categoria = null) {
+
+    if($categoria) {
+        return "Bienvenido al curso: $curso de la categoria: $categoria";
+    } else {
+        return "Bienvenido al curso: $curso";
+    }
+
+});
+
+================
+ CONTROLADORES
+================
+
+app/Http/Controllers
+
+- crear nuevo controlador desde terminal: php artisan make:controller CursoController
+
+CursoController.php ==>
+
+class CursoController extends Controller
+{
+    public function index() {
+        return 'Hola desde cursos';
+    }
+
+    public function create() {
+        return "pagina create";
+    }
+
+    public function show($cursos) {
+        return "Bienvenido al curso: $cursos";
+    }
+
+}
+
+web.php =====>
+
+Route::get('/', HomeController::class);
+Route::get('cursos', [CursoController::class, 'index']);
+Route::get('cursos/create', [CursoController::class, 'create']);
+Route::get('cursos/{curso}', [CursoController::class, 'show']);
+
+=============
+DATABASE
+=============
+
+- Configurar para MySQL:
+entrar a config/database.php
+entrar al archivo .env para configurar sus variables q llaman el archivo database.php
+
+
+===================================
+CREAR TABLAS MEDIANTE MIGRATIONS
+===================================
+- ubicación de los archivos(tablas) para migración: database/migrations
+
+- crear nuevo archivo migration: php artisan make:migration nombreArchivo
+
+- crear nuevo archivo migration pero con esquema ya hecha: php artisan make:migration create_nombreArchivo_table
+
+- migrar tablas en la BD: php artisan migrate
+
+- revertir migración hecha anteriormente: php artisan migrate:rollback
+
+- actualizar tabla en caso que agregue cierto campo o modifique:php artisan migrate:fresh
+este comando lo que hace es eliminar todas las tablas y volver a crearlos nuevamente, no es recomendable
+cuando esta en producción porque se pueden eliminar todos los registros.
+
+- agregar campo a una tabla sin eliminar sus registros: 
+por ej. si quiero agregar un campo 'avatar' a la tabla 'users' debo escribir:
+        php artisan make:migration add_avatar_to_users_table
+dentro del archivo add_avatar_to_users_table agrego dentro de Schema::table UP agrego el campo:
+	$table->string('avatar')->nullable();
+dentro del archivo add_avatar_to_users_table agrego dentro de Schema::table DOWN agrego el campo:
+	$table->dropColumn('avatar');
+
+- agregar campo a una tabla sin eliminar registros después del cierto campo. 
+Por ej. si quiero agregar el campo 'avatar' luego del campo email, debo hacer lo mismo que
+antes pero en Schema::table UP agrego:
+	$table->string('avatar')->nullable()->after('email');
+
+- modificar su tipo de un campo de una tabla. Por ej. si quiero modificar el campo 'name' que soporta
+255 caracteres de la tabla 'users' a 150 caracteres debo hacer lo siguiente:
+	composer require doctrine/dbal (descargar nueva dependencia para modificar)
+	
+	php artisan make:migration cambiar_propiedades_to_users_table (creo un migration)
+
+dentro de la nueva tabla migration debo agregar en UP:
+            $table->string('name', 150)->change();  (nuevo tamaño)
+dentro de DOWN:
+            $table->string('name', 255)->change();  (antiguo tamaño)
+
+=================
+ELOQUENT: ORM
+=================
+Eloquent trata a los registros de las tablas como objetos!
+Para cada tabla(migration) que se creo, se debe crear su modelo respectivo. X ej. si cree las tablas
+users, cursos, debo crear los modelos User, Curso.
+
+- Crear un nuevo modelo: php artisan make:model Curso  (ubicación app/Models)
+
+por convención el modelo Curso ya esta apuntando a la tabla cursos de la BD, ya que 
+cuando creo un modelo en singular laravel lo asocia a una tabla del mismo nombre pero en plural
+en este caso Curso -> se asocia a cursos
+si quiero asociar manualmente agrego dentro del archivo de Curso:
+ 		protected $table = "users"; // asocio el modelo Curso a la tabla users
+
+
+- Si quiero agregar un nuevo registro a la tabla cursos debo entrar por consola de tinker de laravel:
+	php artisan tinker  (entra a la consola para añadir un nuevo registro)
+	Dentro de la consola escribo:
+	use App\Models\Curso;  // uso el modelo que cree
+	$curso = new Curso;  // instancio un nuevo objeto del modelo Curso
+	$curso->name = 'Laravel'; // agrego valor al campo name
+	$curso->description = 'El mejor framework de PHP'; // agrego valor al campo description
+	$curso->save();  // salida true y almacena en la BD el registro 
+	$curso;     // para ver los datos que almacene                                                                                  
+	= App\Models\Curso {#5005
+   	 name: "Laravel",
+   	 description: "El mejor framework de PHP",
+   	 updated_at: "2024-08-31 21:23:48",
+   	 created_at: "2024-08-31 21:23:48",
+    	id: 1,
+  	}
+
+- Si quiero modificar el valor 'description' del objeto anterior q cree hago lo siguiente:
+$curso->description = "El mejor frame del mundo mundial!!" 
+$curso->save(); // salida true y modifica en la BD el campo 
+
+===========
+SEEDERS  : Sirve para llenar datos en las tablas.
+===========
+Ubicación del archivo principal seeder: database/seeders/DatabaseSeeder.php
+
+- Crear nuevos registros de cursos: creamos un archivo seeder para registrar datos en la tabla 'cursos'
+
+	- php artisan make:seeder CursoSeeder (database/seeders/CursoSeeder.php) 
+
+	dentro de CursoSeeder.php RUN escribimos los registros q queremos:
+
+	$curso = new Curso();
+        $curso -> name = "Laravel";
+        $curso -> description = "The best PHP Framework";
+        $curso -> category = "Web Development";
+        $curso -> save();
+
+	- php artisan migrate:fresh --seed  (borra las anteriores )
+
+==========================
+FACTORY: Crea datos randoms en los campos de las tablas
+==========================
+- Crear un archivo factory: 
+ 	php artisan make:factory CursoFactory (ubicación database/factories/CursoFactory.php)
+
+- Llenar datos de CursoFactory: en return se debe escribir los campos d la tabla cursos y llenar de esta forma:
+	return [
+        	    'name' => $this->faker->sentence(),
+         	   'description' => $this->faker->paragraph(),
+         	   'category' => $this->faker->randomElement(['Desarrollo Web', 'Diseño Web'])
+       		 ]
+- En DatabaseSeeder.php borrar $this->call(CursoSeeder::class) y agregar la linea:
+
+        Curso::factory(50)->create();  (llenara 50 registros en la tabla cursos)
+        User::factory(10)->create();   (llenara 10 registros en la tabla users) 
+
+- luego volver a borrar y realizar migration con el seed:
+ 	php artisan migrate:fresh --seed
+
+=======================
+CONSULTAS EN ELOQUENT
+=======================
+Ejemplos con la tabla 'users'::
+entramos a la terminal de laravel: php artisan tinker
+
+- obtener todos los registros:$cursos = Curso::all();
+- obtener los registros cuya category sea igual a diseño web: $cursos = Curso::where('category', 'Diseño Web')->get();
+- obtener los registros cuya category sea igual a diseño web y este ordenado por id descendiente
+ $cursos = Curso::where('category', 'Diseño Web')->orderBy('id', 'desc')->get(); 
+
+- seleccionar solo el name y description..
+$curso = Curso::select('name', 'description')->orderBy('name', 'asc')->where('category', 'Diseño W
+eb')->get();
+
+- seleccionar solo el name como title, description y category.... donde solo obtenga los 5 primeros registros
+ $curso = Curso::select('name as title', 'description', 'category')->orderBy('name', 'asc')->where(
+'category', 'Diseño Web')->take(5)->get();
+
+- obtener el registro de id 5: $curso = Curso::find(5);
+- obtener todos los registros donde id sean mayor a 45:  $curso = Curso::where('id', '>', 45)->get() 
+- obtener los registros cuyo nombre(name) contenga la palabra 'voluptate':
+	curso = Curso::where('name','like','% voluptate %')->get() 
+
+======================
+MUTADORES Y ACCESORE 
+======================
+- Mutadores: transforman ciertos valores de los registros q queremos almacenar en nuestra BD 
+(en el código esta como set)
+
+
+- Accesores: Transforma ciertos valores de los registros que ya están registrados en la BD
+para mostrarnos, por ej. tengo registrado el name: jesus averanga, y quiero q me muestre 
+mayúsculas las primeras letras
+
+ej. Por ej. quiero almacenar en la tabla users un nuevo registro en name no puedo guardar 
+de esa forma y debo convertir en miniscula todo ese valor: 
+
+{
+	name: "JesUS AveRaNgA" ,
+	email: "jesus@jesus.com",
+	password: "$2y$12$JNivXTXN/kfoEsbybwS0peoCWCeDmZLy2LkbBobuysFsr2z9kq5Vq",
+}
+
+Entro al archivo model User.php y añado el código:
+
+use Illuminate\Database\Eloquent\Casts\Attribute;
+
+protected function name(): Attribute {
+        return new Attribute(
+            get: fn($value) => ucwords($value), // funcion flecha de php8 , ACCESORES
+            set: fn($value) => strtolower($value)  // MUTADORES
+        );
+    }
+
+
+=================================================
+CORRER PROYECTO LARAVEL EN SU PROPIO SERVIDOR
+=================================================
+-instalo:  composer create-project laravel/laravel laravel-crud-api
+
+ dentro del proyecto creado escribo: php artisan serve
+
+=====================================================
+CREAR MODELO,MIGRATION,CONTROLADOR,FACTORY EN UNO
+=====================================================
+crea todos esos archivos para apuntar con la tabla 'department', en controller
+creo métodos de una API REST (como index, store, update, show y destroy) y en --api
+se centra de trabajar solamente con las apis y nada de vistas
+
+php artisan make:model Department -mcrf --api
+
